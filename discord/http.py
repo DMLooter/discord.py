@@ -1289,6 +1289,21 @@ class HTTPClient:
         r = Route('PATCH', '/guilds/{guild_id}/emojis/{emoji_id}', guild_id=guild_id, emoji_id=emoji_id)
         return self.request(r, json=payload, reason=reason)
 
+    """START SCHEDULED EVENT STUFF"""
+    def get_all_scheduled_events(self, guild_id: Snowflake) -> Response[List[scheduled_event.ScheduledEvent]]:
+        return self.request(Route('GET', '/guilds/{guild_id}/scheduled-events', guild_id=guild_id))
+
+    def get_scheduled_event(self, guild_id: Snowflake, guild_scheduled_event_id: Snowflake) -> Response[scheduled_event.ScheduledEvent]:
+        r = Route(
+            'GET',
+            '/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}',
+            guild_id=guild_id,
+            guild_scheduled_event_id=guild_scheduled_event_id
+        )
+        return self.request(r)
+
+    """END SCHEDULED EVENT STUFF"""
+
     def get_all_integrations(self, guild_id: Snowflake) -> Response[List[integration.Integration]]:
         r = Route('GET', '/guilds/{guild_id}/integrations', guild_id=guild_id)
 
