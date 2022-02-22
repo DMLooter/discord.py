@@ -254,6 +254,7 @@ class ConnectionState:
         self._users: Dict[int, User] = {}
         self._emojis: Dict[int, Emoji] = {}
         self._stickers: Dict[int, GuildSticker] = {}
+        self._scheduled_events: Dict[int, User] = {}
         self._guilds: Dict[int, Guild] = {}
         if views:
             self._view_store: ViewStore = ViewStore(self)
@@ -359,7 +360,7 @@ class ConnectionState:
     def store_scheduled_event(self, guild: Guild, data: ScheduledEventPayload) -> ScheduledEvent:
         # the id will be present here
         scheduled_event_id = int(data['id'])  # type: ignore
-        self.scheduled_events[scheduled_event_id] = scheduled_event = ScheduledEvent(guild=guild, state=self, data=data)
+        self._scheduled_events[scheduled_event_id] = scheduled_event = ScheduledEvent(guild=guild, state=self, data=data)
         return scheduled_event
 
     def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
@@ -397,6 +398,9 @@ class ConnectionState:
         for sticker in guild.stickers:
             self._stickers.pop(sticker.id, None)
 
+        for scheduled_event in guild.scheduled_events:
+            self._scheduled_events.pop(scheduled_event.id, None)
+
         del guild
 
     @property
@@ -407,6 +411,10 @@ class ConnectionState:
     def stickers(self) -> List[GuildSticker]:
         return list(self._stickers.values())
 
+    @property
+    def scheduled_events(self) -> List[ScheduledEvent]:
+        return list(self._scheduled_events.values())
+
     def get_emoji(self, emoji_id: Optional[int]) -> Optional[Emoji]:
         # the keys of self._emojis are ints
         return self._emojis.get(emoji_id)  # type: ignore
@@ -414,6 +422,10 @@ class ConnectionState:
     def get_sticker(self, sticker_id: Optional[int]) -> Optional[GuildSticker]:
         # the keys of self._stickers are ints
         return self._stickers.get(sticker_id)  # type: ignore
+
+    def get_scheduled_event(self, scheduled_event_id: Optional[int]) -> Optional[ScheduledEvent]:
+        # the keys of self._scheduled_events are ints
+        return self._scheduled_events.get(scheduled_event_id)  # type: ignore
 
     @property
     def private_channels(self) -> List[PrivateChannel]:
@@ -1039,6 +1051,19 @@ class ConnectionState:
         # guild won't be None here
         guild.stickers = tuple(map(lambda d: self.store_sticker(guild, d), data['stickers']))  # type: ignore
         self.dispatch('guild_stickers_update', guild, before_stickers, guild.stickers)
+
+    def parse_guild_scheduled_events_update(self, data) -> None:
+        guild = self._get_guild(int(data['guild_id']))
+        if guild is None:
+            _log.debug('GUILD_SCHEDULED_EVENTS_UPDATE referencing an unknown guild ID: %s. Discarding.', data['guild_id'])
+            return
+
+        before_scheduled_events = guild.scheduled_events
+        for scheduled_event in before_scheduled_events:
+            self._scheduled_events.pop(scheduled_event.id, None)
+        # guild won't be None here
+        guild.scheduled_events = tuple(map(lambda d: self.store_scheduled_event(guild, d), data['scheduled_events']))  # type: ignore
+        self.dispatch('guild_scheduled_events_update', guild, before_scheduled_events, guild.scheduled_events)
 
     def _get_create_guild(self, data):
         if data.get('unavailable') is False:

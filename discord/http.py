@@ -1323,8 +1323,6 @@ class HTTPClient:
             'scheduled_start_time': scheduled_start_time.isoformat(),
             'entity_type': entity_type
         }
-        if channel_id:
-            payload['channel_id'] = channel_id
         if scheduled_end_time:
             payload['scheduled_end_time'] = scheduled_end_time.isoformat()
         if description:
@@ -1332,8 +1330,15 @@ class HTTPClient:
 
         if entity_type == 3 :
             payload['entity_metadata'] = {'location': location}
+            payload['channel_id'] = None
+            if not scheduled_end_time:
+                raise InvalidArgument("If entity_type is EXTERNAL, scheduled_end_time must be provided")
         else:
             payload['entity_metadata'] = None
+            if channel_id:
+                payload['channel_id'] = channel_id
+            else:
+                raise InvalidArgument("If entity_type is STAGE_INSTANCE or VOICE, channel_id must be provided")
 
         r = Route('POST', '/guilds/{guild_id}/scheduled-events', guild_id=guild_id)
         print(payload)

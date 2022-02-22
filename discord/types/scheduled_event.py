@@ -69,7 +69,7 @@ creator?	    user object	the user that created the scheduled event
 user_count?	    integer	the number of users subscribed to the scheduled event
 """
 #This class contains only the optional parts
-class ScheduledEvent(PartialEmoji, total=False):
+class ScheduledEvent(PartialScheduledEvent, total=False):
     creator_id: Snowflake
     description: str
     creator: User

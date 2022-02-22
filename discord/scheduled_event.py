@@ -25,8 +25,11 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 from typing import Any, Iterator, List, Optional, TYPE_CHECKING, Tuple
 
+from . import utils
+from .utils import MISSING
 from .asset import Asset, AssetMixin
 from .utils import SnowflakeList, snowflake_time, MISSING
+from .enums import ScheduledEventStatus, ScheduledEventEntityType, try_enum
 from .user import User
 
 __all__ = (
@@ -78,7 +81,7 @@ class ScheduledEvent(AssetMixin):
     id: :class:`int`
         The scheduled event's ID.
     guild_id: :class:`int`
-        The guild ID the emoji belongs to.
+        The guild ID the scheduled event belongs to.
     channel_id: Optional[:class:`int`]
         The channel ID that this event will be hosted in. (bust be null if :attr:`entity_type` is EXTERNAL)
     creator_id: Optional[:class:`int`]
@@ -92,9 +95,9 @@ class ScheduledEvent(AssetMixin):
         Required if :attr:`entity_type` is EXTERNAL.
     privacy_level: :class:`int`
         The privacy level of the event
-    status: :class:`int`
+    status: :class:`ScheduledEventStatus`
         The status of the event
-    entity_type: :class:`int`
+    entity_type: :class:`ScheduledEventEntityType`
         The type of the event
     location: :class:`str`
         The location of the event
@@ -103,8 +106,8 @@ class ScheduledEvent(AssetMixin):
     image: :class:`str`
         The hash of the event's cover image
     creator: Optional[:class:`User`]
-        The user that created the emoji. This can only be retrieved using :meth:`Guild.fetch_emoji` and
-        having the :attr:`~Permissions.manage_emojis` permission.
+        The user that created the scheduled event. This can only be retrieved using :meth:`Guild.fetch_scheduled_event` and
+        having the :attr:`~Permissions.manage_scheduled_events` permission.
     """
 
     __slots__: Tuple[str, ...] = (
@@ -135,18 +138,21 @@ class ScheduledEvent(AssetMixin):
         self.id: int = int(scheduled_event['id'])  # type: ignore
         self.name: str = scheduled_event['name']  # type: ignore
         self.guild_id: int = int(scheduled_event['guild_id'])
-        self.channel_id: int = int(scheduled_event['channel_id'])
+
+        channel = scheduled_event['channel_id']
+        self.channel_id: int = int(channel) if channel else None
+
         self.creator_id: int = scheduled_event.get('creator_id', 0)
         self.description: str = scheduled_event['description']
         self.scheduled_start_time: datetime.datetime = utils.parse_time(scheduled_event['scheduled_start_time'])
         self.scheduled_end_time: datetime.datetime = utils.parse_time(scheduled_event['scheduled_end_time'])
         self.privacy_level: int = int(scheduled_event['privacy_level'])
-        self.status: int = int(scheduled_event['status'])
-        self.entity_type: int = int(scheduled_event['entity_type'])
+        self.status: ScheduledEventStatus = try_enum(ScheduledEventStatus, scheduled_event['status'])
+        self.entity_type: ScheduledEventEntityType = try_enum(ScheduledEventEntityType, scheduled_event['entity_type'])
         self.location: str = scheduled_event['entity_metadata']['location']
-        self.user_count: int = int(scheduled_event.get('user_count'))
+        self.user_count: int = int(scheduled_event.get('user_count', 0))
         self.image: str = scheduled_event['image']
-        user = emoji.get('creator')
+        user = scheduled_event.get('creator')
         self.creator: Optional[User] = User(state=self._state, data=user) if user else None
 
     def _to_partial(self) -> PartialScheduledEvent:
@@ -181,7 +187,7 @@ class ScheduledEvent(AssetMixin):
 
     @property
     def guild(self) -> Guild:
-        """:class:`Guild`: The guild this emoji belongs to."""
+        """:class:`Guild`: The guild this scheduled event belongs to."""
         return self._state._get_guild(self.guild_id)
 
     async def delete(self, *, reason: Optional[str] = None) -> None:

@@ -31,6 +31,7 @@ from .activity import PartialPresenceUpdate
 from .role import Role
 from .member import Member
 from .emoji import Emoji
+from .scheduled_event import ScheduledEvent
 from .user import User
 from .threads import Thread
 
@@ -66,6 +67,7 @@ class _GuildOptional(TypedDict, total=False):
     max_members: int
     premium_subscription_count: int
     max_video_channel_users: int
+    scheduled_events: List[ScheduledEvent]
 
 
 DefaultMessageNotificationLevel = Literal[0, 1]

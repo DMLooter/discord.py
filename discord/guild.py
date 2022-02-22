@@ -148,6 +148,8 @@ class Guild(Hashable):
         The guild name.
     emojis: Tuple[:class:`Emoji`, ...]
         All emojis that the guild owns.
+    scheduled_events: Tuple[:class:`ScheduledEvent`, ...]
+        All scheduled events that the guild owns.
     stickers: Tuple[:class:`GuildSticker`, ...]
         All stickers that the guild owns.
 
@@ -246,6 +248,7 @@ class Guild(Hashable):
         'owner_id',
         'mfa_level',
         'emojis',
+        'scheduled_events',
         'stickers',
         'features',
         'verification_level',
@@ -425,6 +428,9 @@ class Guild(Hashable):
 
         self.mfa_level: MFALevel = guild.get('mfa_level')
         self.emojis: Tuple[Emoji, ...] = tuple(map(lambda d: state.store_emoji(self, d), guild.get('emojis', [])))
+        self.scheduled_events: Tuple[ScheduledEvent, ...] = tuple(
+            map(lambda d: state.store_scheduled_event(self, d), guild.get('guild_scheduled_events', []))
+        )
         self.stickers: Tuple[GuildSticker, ...] = tuple(
             map(lambda d: state.store_sticker(self, d), guild.get('stickers', []))
         )
@@ -2381,10 +2387,9 @@ class Guild(Hashable):
         Returns
         --------
         List[:class:`ScheduledEvents`]
-            The retrieved emojis.
+            The retrieved scheduled_events.
         """
         data = await self._state.http.get_all_scheduled_events(self.id)
-        print(data)
         return [ScheduledEvent(guild=self, state=self._state, data=d) for d in data]
 
     async def fetch_scheduled_event(self, guild_scheduled_event_id: int, /) -> ScheduledEvent:
@@ -2440,14 +2445,24 @@ class Guild(Hashable):
         Parameters
         -----------
         name: :class:`str`
-            The emoji name. Must be at least 2 characters.
-        image: :class:`bytes`
-            The :term:`py:bytes-like object` representing the image data to use.
-            Only JPG, PNG and GIF images are supported.
-        roles: List[:class:`Role`]
-            A :class:`list` of :class:`Role`\s that can use this emoji. Leave empty to make it available to everyone.
+            The scheduled event name. Must be at least 2 characters.
+        scheduled_start_time: :class:`datetime.datetime`
+            The scheduled event Start time. Must be in the future
+        privacy_level: :class:`int`
+            The privacy level of the event (must be 2)
+        entity_type: :class:`int`
+            The type of the event (Stage, Channel, External)
+            If EXTERNAL, a location must be provided, if VOICE or STAGE_INSTANCE, a channel ID must be provided
+        location: :class:`str`
+            The location of the event, if EXTERNAL
+        scheduled_end_time: :class:`datetime.datetime`
+            The scheduled event End time. Must be after the start time
+        description: :class:`str`
+            The description of the event
+        channel_id: :class:`abc.Snowflake`
+            The channel_id the event will be held in if VOICE or STAGE_INSTANCE
         reason: Optional[:class:`str`]
-            The reason for creating this emoji. Shows up on the audit log.
+            The reason for creating this scheduled_event. Shows up on the audit log.
 
         Raises
         -------
@@ -2455,15 +2470,16 @@ class Guild(Hashable):
             You are not allowed to create scheduled events.
         HTTPException
             An error occurred creating a scheduled events.
+        InvalidArgument
+            If a required value for an entity_type is not provided
 
         Returns
         --------
         :class:`ScheduledEvent`
             The created scheduled event.
         """
-        print(location)
+
         data = await self._state.http.create_scheduled_event(self.id, name, scheduled_start_time, privacy_level, entity_type, location, scheduled_end_time, description, channel_id, reason=reason)
-        print(data)
         return self._state.store_scheduled_event(self, data)
 
     async def delete_scheduled_event(self, scheduled_event: Snowflake, *, reason: Optional[str] = None) -> None:

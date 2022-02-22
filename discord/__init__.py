@@ -25,6 +25,7 @@ from .appinfo import *
 from .user import *
 from .emoji import *
 from .partial_emoji import *
+from .scheduled_event import *
 from .activity import *
 from .channel import *
 from .guild import *
