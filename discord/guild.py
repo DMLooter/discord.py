@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import copy
 import unicodedata
+import datetime
 from typing import (
     Any,
     ClassVar,
@@ -46,6 +47,7 @@ from . import utils, abc
 from .role import Role
 from .member import Member, VoiceState
 from .emoji import Emoji
+from .scheduled_event import ScheduledEvent
 from .errors import InvalidData
 from .permissions import PermissionOverwrite
 from .colour import Colour
@@ -2360,6 +2362,137 @@ class Guild(Hashable):
         """
 
         await self._state.http.delete_custom_emoji(self.id, emoji.id, reason=reason)
+
+    """ EVENTS SECTION """
+    async def fetch_scheduled_events(self) -> List[ScheduledEvent]:
+        r"""|coro|
+
+        Retrieves all custom :class:`ScheduledEvent`\s from the guild.
+
+        .. note::
+
+            This method is an API call. For general usage, consider :attr:`scheduled_events` instead.
+
+        Raises
+        ---------
+        HTTPException
+            An error occurred fetching the scheduled events.
+
+        Returns
+        --------
+        List[:class:`ScheduledEvents`]
+            The retrieved emojis.
+        """
+        data = await self._state.http.get_all_scheduled_events(self.id)
+        print(data)
+        return [ScheduledEvent(guild=self, state=self._state, data=d) for d in data]
+
+    async def fetch_scheduled_event(self, guild_scheduled_event_id: int, /) -> ScheduledEvent:
+        """|coro|
+
+        Retrieves a custom :class:`ScheduledEvent` from the guild.
+
+        .. note::
+
+            This method is an API call.
+            For general usage, consider iterating over :attr:`scheduled_events` instead.
+
+        Parameters
+        -------------
+        guild_scheduled_event_id: :class:`int`
+            The scheduled event's ID.
+
+        Raises
+        ---------
+        NotFound
+            The scheduled event requested could not be found.
+        HTTPException
+            An error occurred fetching the scheduled event.
+
+        Returns
+        --------
+        :class:`ScheduledEvent`
+            The retrieved scheduled event.
+        """
+        data = await self._state.http.get_scheduled_event(self.id, guild_scheduled_event_id)
+        return ScheduledEvent(guild=self, state=self._state, data=data)
+
+    async def create_scheduled_event(
+        self,
+        *,
+        name: str,
+        scheduled_start_time: datetime.datetime,
+        privacy_level: int = 2,
+        entity_type: int = 3,
+        location: Optional[str] = "",
+        scheduled_end_time: Optional[datetime.datetime] = None,
+        description: Optional[str] = None,
+        channel_id: Optional[Snowflake] = None,
+        reason: Optional[str] = None,
+    ) -> ScheduledEvent:
+        r"""|coro|
+
+        Creates a custom :class:`ScheduledEvent` for the guild.
+
+        You must have the :attr:`~Permissions.manage_scheduled_events` permission to
+        do this.
+
+        Parameters
+        -----------
+        name: :class:`str`
+            The emoji name. Must be at least 2 characters.
+        image: :class:`bytes`
+            The :term:`py:bytes-like object` representing the image data to use.
+            Only JPG, PNG and GIF images are supported.
+        roles: List[:class:`Role`]
+            A :class:`list` of :class:`Role`\s that can use this emoji. Leave empty to make it available to everyone.
+        reason: Optional[:class:`str`]
+            The reason for creating this emoji. Shows up on the audit log.
+
+        Raises
+        -------
+        Forbidden
+            You are not allowed to create scheduled events.
+        HTTPException
+            An error occurred creating a scheduled events.
+
+        Returns
+        --------
+        :class:`ScheduledEvent`
+            The created scheduled event.
+        """
+        print(location)
+        data = await self._state.http.create_scheduled_event(self.id, name, scheduled_start_time, privacy_level, entity_type, location, scheduled_end_time, description, channel_id, reason=reason)
+        print(data)
+        return self._state.store_scheduled_event(self, data)
+
+    async def delete_scheduled_event(self, scheduled_event: Snowflake, *, reason: Optional[str] = None) -> None:
+        """|coro|
+
+        Deletes the custom :class:`ScheduledEvent` from the guild.
+
+        You must have :attr:`~Permissions.manage_scheduled_events` permission to
+        do this.
+
+        Parameters
+        -----------
+        scheduled_event: :class:`abc.Snowflake`
+            The scheduled event you are deleting.
+        reason: Optional[:class:`str`]
+            The reason for deleting this scheduled event. Shows up on the audit log.
+
+        Raises
+        -------
+        Forbidden
+            You are not allowed to delete scheduled events.
+        HTTPException
+            An error occurred deleting the scheduled event.
+        """
+
+        await self._state.http.delete_scheduled_event(self.id, scheduled_event.id, reason=reason)
+
+
+    """ END EVENTS SECTION """
 
     async def fetch_roles(self) -> List[Role]:
         """|coro|

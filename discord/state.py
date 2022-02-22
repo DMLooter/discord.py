@@ -39,6 +39,7 @@ from .guild import Guild
 from .activity import BaseActivity
 from .user import User, ClientUser
 from .emoji import Emoji
+from .scheduled_event import ScheduledEvent
 from .mentions import AllowedMentions
 from .partial_emoji import PartialEmoji
 from .message import Message
@@ -72,6 +73,7 @@ if TYPE_CHECKING:
     from .types.channel import DMChannel as DMChannelPayload
     from .types.user import User as UserPayload
     from .types.emoji import Emoji as EmojiPayload
+    from .types.scheduled_event import ScheduledEvent as ScheduledEventPayload
     from .types.sticker import GuildSticker as GuildStickerPayload
     from .types.guild import Guild as GuildPayload
     from .types.message import Message as MessagePayload
@@ -353,6 +355,12 @@ class ConnectionState:
         emoji_id = int(data['id'])  # type: ignore
         self._emojis[emoji_id] = emoji = Emoji(guild=guild, state=self, data=data)
         return emoji
+
+    def store_scheduled_event(self, guild: Guild, data: ScheduledEventPayload) -> ScheduledEvent:
+        # the id will be present here
+        scheduled_event_id = int(data['id'])  # type: ignore
+        self.scheduled_events[scheduled_event_id] = scheduled_event = ScheduledEvent(guild=guild, state=self, data=data)
+        return scheduled_event
 
     def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
         sticker_id = int(data['id'])

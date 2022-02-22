@@ -28,6 +28,7 @@ import asyncio
 import json
 import logging
 import sys
+import datetime
 from typing import (
     Any,
     ClassVar,
@@ -1302,6 +1303,62 @@ class HTTPClient:
         )
         return self.request(r)
 
+    def create_scheduled_event(
+        self,
+        guild_id: Snowflake,
+        name: str,
+        scheduled_start_time: datetime.datetime,
+        privacy_level: int = 2,
+        entity_type: int = 3,
+        location: Optional[str] = "",
+        scheduled_end_time: Optional[datetime.datetime] = None,
+        description: Optional[str] = None,
+        channel_id: Optional[Snowflake] = None,
+        *,
+        reason: Optional[str] = None,
+    ) -> Response[scheduled_event.ScheduledEvent]:
+        payload = {
+            'name': name,
+            'privacy_level': privacy_level,
+            'scheduled_start_time': scheduled_start_time.isoformat(),
+            'entity_type': entity_type
+        }
+        if channel_id:
+            payload['channel_id'] = channel_id
+        if scheduled_end_time:
+            payload['scheduled_end_time'] = scheduled_end_time.isoformat()
+        if description:
+            payload['description'] = description
+
+        if entity_type == 3 :
+            payload['entity_metadata'] = {'location': location}
+        else:
+            payload['entity_metadata'] = None
+
+        r = Route('POST', '/guilds/{guild_id}/scheduled-events', guild_id=guild_id)
+        print(payload)
+        return self.request(r, json=payload, reason=reason)
+
+    def delete_scheduled_event(
+        self,
+        guild_id: Snowflake,
+        guild_scheduled_event_id: Snowflake,
+        *,
+        reason: Optional[str] = None,
+    ) -> Response[None]:
+        r = Route('DELETE', '/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}', guild_id=guild_id, guild_scheduled_event_id=guild_scheduled_event_id)
+        return self.request(r, reason=reason)
+
+    def edit_scheduled_event(
+        self,
+        guild_id: Snowflake,
+        guild_scheduled_event_id: Snowflake,
+        *,
+        payload: Dict[str, Any],
+        reason: Optional[str] = None,
+    ) -> Response[emoji.Emoji]:
+        r = Route('PATCH', '/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}', guild_id=guild_id, guild_scheduled_event_id=guild_scheduled_event_id)
+        return self.request(r, json=payload, reason=reason)
     """END SCHEDULED EVENT STUFF"""
 
     def get_all_integrations(self, guild_id: Snowflake) -> Response[List[integration.Integration]]:
