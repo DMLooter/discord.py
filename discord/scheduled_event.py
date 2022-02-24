@@ -99,8 +99,8 @@ class ScheduledEvent(AssetMixin):
         The status of the event
     entity_type: :class:`ScheduledEventEntityType`
         The type of the event
-    location: :class:`str`
-        The location of the event
+    location: :class:`Optional[:class:`str`]`
+        The location of the event if external
     user_count: :class:`int`
         The number of users who have RSVPed to the event
     image: :class:`str`
@@ -149,7 +149,9 @@ class ScheduledEvent(AssetMixin):
         self.privacy_level: int = int(scheduled_event['privacy_level'])
         self.status: ScheduledEventStatus = try_enum(ScheduledEventStatus, scheduled_event['status'])
         self.entity_type: ScheduledEventEntityType = try_enum(ScheduledEventEntityType, scheduled_event['entity_type'])
-        self.location: str = scheduled_event['entity_metadata']['location']
+
+        metadata = scheduled_event['entity_metadata']
+        self.location: Optional[str] = metadata.get('location', None) if metadata else None
         self.user_count: int = int(scheduled_event.get('user_count', 0))
         self.image: str = scheduled_event['image']
         user = scheduled_event.get('creator')
@@ -166,7 +168,7 @@ class ScheduledEvent(AssetMixin):
                     yield (attr, value)
 
     def __str__(self) -> str:
-        return f'<:{self.name}:{self.id}:{self.status}>'
+        return f'<:{self.name}:{self.id}:{self.description}:{self.location}/{self.channel_id}>'
 
     def __repr__(self) -> str:
         return f'<ScheduledEvent id={self.id} name={self.name!r}>'
