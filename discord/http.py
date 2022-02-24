@@ -1341,7 +1341,6 @@ class HTTPClient:
                 raise InvalidArgument("If entity_type is STAGE_INSTANCE or VOICE, channel_id must be provided")
 
         r = Route('POST', '/guilds/{guild_id}/scheduled-events', guild_id=guild_id)
-        print(payload)
         return self.request(r, json=payload, reason=reason)
 
     def delete_scheduled_event(
